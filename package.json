@@ -15,11 +15,12 @@
     "render:example": "tsc -p tsconfig.json && node dist/src/bootstrap/RenderExample.js"
   },
   "dependencies": {
-    "@xmldom/xmldom": "^0.9.12"
+    "@xmldom/xmldom": "0.9.12"
   },
   "devDependencies": {
-    "@resvg/resvg-js": "^2.6.2",
-    "@types/node": "^26.6.5",
-    "typescript": "^7.0.2"
-  }
+    "@resvg/resvg-js": "2.6.2",
+    "@types/node": "26.6.5",
+    "typescript": "7.0.2"
+  },
+  "packageManager": "pnpm@11.25.0"
 }

@@ -12,27 +12,26 @@
 | cli | 命令行分词、命令分发、REPL、显示 |
 | bootstrap | 依赖组装与启动 |
 
-```plantuml
-@startuml
-package CLI
-package Application
-package Domain
-package Infrastructure
-package Bootstrap
-CLI --> Application
-CLI --> Domain : 只读显示
-Application --> Domain
-Infrastructure --> Application : 实现端口
-Infrastructure --> Domain
-Bootstrap --> CLI
-Bootstrap --> Application
-Bootstrap --> Infrastructure
-@enduml
-```
+![PlantUML 模块依赖图](architecture.png)
+
+图的 [PlantUML 源码](architecture.puml) 与 [SVG 矢量图](architecture.svg) 一并提交，可独立修改和重新生成。依赖箭头表示“使用/实现该模块的类型”，并非运行时调用顺序。
+
+实际工程还有 tests（验证）、examples（命令与图像样例）、doc（设计与过程）。这些不属于应用运行时模块。
 
 ### 设计模式
 
 必须采用 Command：每种编辑一个命令类，通过统一历史管理器执行和撤销。采用 Composite：Group 和叶子同属 Shape，多态操作几何。采用集中式 ShapeFactory：所有类型名称到构造器的分派只在此处；命令名称到处理器的分派只在 CommandDispatcher。
+
+| 模式/边界 | 对应代码及职责 |
+|---|---|
+| Command | application/Command.ts 定义 execute/undo/redo；十种编辑分别有命令类 |
+| 快照备忘录 | SnapshotCommand 私有保存执行前后文档深克隆，失败回滚，undo/redo 恢复克隆；快照不暴露给 CLI |
+| 历史管理 | HistoryManager 只在执行成功后修改栈；EditorSession 控制 IO 屏障和当前文件路径 |
+| Composite | domain/Shape.ts 定义共同操作；GeometryShape 封装数值及几何规则；Group 递归委派 move/scale |
+| 工厂 | ShapeFactory 同时服务 create 和 SVG 导入，避免解析层再建一份类型分派 |
+| 端口适配 | DocumentStore 是应用层接口，FileDocumentStore/SvgCodec 隔离磁盘及 XML；Main 负责注入 |
+
+持久化返回值和 Token 使用只读边界数据；领域模型本身的几何、样式、子列表和画布尺寸均封装在私有字段，通过行为修改。
 
 两处名称分派均为后续待重构项：未来以插件注册机制替代内置清单。本阶段不实现 box 或完整插件系统。
 
@@ -105,8 +104,62 @@ Tokenizer 保留参数是否被双引号包裹的信息，避免将文字内容 
 
 ## 一致性自查
 
-待最终代码完成后以实际目录、导入关系与检查结果填写。
+### 模块划分
+
+实际五个 src 子目录与方案一致，所有类与文件名一致。明确的修订为：将原计划 id 缓存改为遍历查询，减少冗余状态；增加 Numbers 和 GeometryShape 复用数值验证；增加只用于开发的 RenderExample 与 Windows 启动脚本。变更均已记入本文件。
+
+### 依赖方向
+
+通过 tests/architecture.test.ts 扫描所有源文件相对导入，并验证 Domain/Application 不导入 Node 或第三方包。当前无违反规则的依赖。抽样核对：
+
+- application/SnapshotCommand → domain/SvgDocument，不触及 XML/磁盘。
+- infrastructure/FileDocumentStore → application/DocumentStore，实现持久化端口。
+- infrastructure/SvgCodec → domain/ShapeFactory，XML 类型分派没有复制到适配器。
+- cli/CommandDispatcher → application 命令，领域几何由 Numbers 验证，不在 CLI 修改形状字段。
+- bootstrap/Main → CLI、EditorSession、FileDocumentStore，负责依赖组装。
+
+额外检查每个源文件至多一个导出的类、类名匹配文件名，且没有 switch 分派。两个集中名称注册表是架构方案中明确记录的后续待重构项。
 
 ## 质量保证手段
 
-计划执行领域不变量、命令原子性、撤销历史、SVG 往返和作业会话集成测试；最终记录实际结果。
+### 功能与验证对应
+
+| 要求 | 实现入口 | 主要验证 |
+|---|---|---|
+| 六种图形、唯一 id、浮点几何、属性白名单 | ShapeFactory、Shape、GeometryShape、SvgDocument | domain.test、editing.test |
+| create/delete/move/scale/set | 对应 Command 类、EditorOperations | editing.test、history.test、cli.test |
+| group/ungroup/addto/front/back | SvgDocument 树操作及对应 Command | structure.test（跨父级、顺序、祖孙冲突、整组撤销） |
+| undo/redo、失败原子性、IO 屏障 | SnapshotCommand、HistoryManager、EditorSession | history.test、persistence.test |
+| init/read/save/canvas | EditorSession、FileDocumentStore | persistence.test、integration.test |
+| # 注释、引号、in、错误格式 | Tokenizer、CommandDispatcher | cli.test、integration.test |
+| tree/show/help | TreeRenderer、CommandDispatcher | cli.test、真实会话输出 |
+| SVG 文本及样式往返、自动补 id | SvgCodec、ShapeFactory | persistence.test |
+| 作业第 6 节及第 6.1 节案例 | examples/*.commands、Main/REPL | integration.test 的真实 CLI 子进程 |
+| 可渲染图形 | 导出的 SVG、独立 resvg 引擎 | 像素位置和颜色断言、PNG 目视检查 |
+| 模块依赖与类文件约定 | 全部 src | architecture.test |
+
+### 已执行检查
+
+- 开发环境：Windows，Node v24.22.1、pnpm 11.25.0。
+- pnpm test：22 项测试全部通过，无跳过或待办。
+- pnpm run typecheck：严格类型检查通过。
+- run-cli.cmd：实际输入 init 10 20 与 tree，成功得到 svg (10x20)。
+- git diff --check：通过。
+- PlantUML 源文件生成 SVG/PNG，随文档提交；流程图导出图像已目视检查。
+
+测试根据独立需求断言结构、输出及像素结果，未以实现产生的结果作为唯一预期。它们不能证明完整 SVG 标准兼容性；本项目仅承诺已列出的阶段子集。大文档快照性能与任意 SVG 的保真导入是后续改进范围。
+
+### 提交记录
+
+| 提交 | 内容 |
+|---|---|
+| cbc0970 | 工程、依赖、初始架构方案 |
+| 949b2e8 | 多态图形模型与领域验证 |
+| 792922b | 基础编辑入口 |
+| a8cd442 | Command、原子回滚与历史 |
+| b2ba11c | 层级与绘制顺序 |
+| 037b7c6 | REPL、命令解析及显示 |
+| 3126711 | SVG 持久化及历史屏障 |
+| 78b3b26 | 作业完整会话、独立渲染及架构验证 |
+
+后续提交补全使用说明、架构图和发布验证。最终提交以 final tag 标记。原始作业文件未提供具体截止时刻，仓库保留实际提交和 tag 时间供课程要求核对。

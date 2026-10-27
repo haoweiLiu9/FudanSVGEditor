@@ -1,0 +1,38 @@
+@startuml
+!pragma layout smetana
+skinparam backgroundColor white
+skinparam defaultFontName SansSerif
+skinparam packageStyle rectangle
+title SVG Editor CLI - Module Dependencies
+package "cli" as CLI {
+  [Repl / Tokenizer]
+  [CommandDispatcher / TreeRenderer]
+}
+package "application" as Application {
+  [Commands / HistoryManager]
+  [EditorSession / EditorOperations]
+  [DocumentStore (port)]
+}
+package "domain" as Domain {
+  [Shape / GeometryShape / Group]
+  [SvgDocument / ShapeFactory]
+}
+package "infrastructure" as Infrastructure {
+  [SvgCodec / FileDocumentStore]
+}
+package "bootstrap" as Bootstrap {
+  [Main / RenderExample]
+}
+CLI --> Application
+CLI --> Domain : read / validate
+Application --> Domain
+Infrastructure --> Application : implements port
+Infrastructure --> Domain
+Bootstrap --> CLI
+Bootstrap --> Application
+Bootstrap --> Infrastructure
+note bottom of Domain
+No filesystem, XML library,
+or user-interface dependencies
+end note
+@enduml

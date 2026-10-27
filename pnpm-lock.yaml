@@ -9,17 +9,17 @@ importers:
   .:
     dependencies:
       '@xmldom/xmldom':
-        specifier: ^0.9.12
+        specifier: 0.9.12
         version: 0.9.12
     devDependencies:
       '@resvg/resvg-js':
-        specifier: ^2.6.2
+        specifier: 2.6.2
         version: 2.6.2
       '@types/node':
-        specifier: ^26.6.5
+        specifier: 26.6.5
         version: 26.6.5
       typescript:
-        specifier: ^7.0.2
+        specifier: 7.0.2
         version: 7.0.2
 
 packages:
