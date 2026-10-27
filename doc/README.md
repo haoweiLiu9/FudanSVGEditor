@@ -1,5 +1,7 @@
 # Lab1 Phase 1 架构与过程记录
 
+项目名称：**FudanSVGEditor**。公开 Git 仓库：[https://github.com/haoweiLiu9/FudanSVGEditor](https://github.com/haoweiLiu9/FudanSVGEditor)。最终代码版本为 `final` 标签。
+
 ## 架构方案
 
 ### 模块划分
@@ -101,6 +103,8 @@ Tokenizer 保留参数是否被双引号包裹的信息，避免将文字内容 
 引入仅用于开发验证的 @resvg/resvg-js，独立于本编辑器的 XML 解析器渲染输出；验证 800×600 尺寸和两个矩形内部像素颜色。生成并目视检查 examples/flowchart.png，中文、连线及两个节点显示正常。当前浏览器控制因 URL 识别安全检查而中止，因此本轮未做浏览器界面预览；改用独立 SVG 渲染及图像目视检查，没有绕过浏览器安全限制。
 
 用户明确确认使用 haoweiLiu9 后，验证本机现有 Git 凭据与该账户匹配，通过 GitHub API 创建私有 svg-editor-cli 仓库，并推送分步提交。未生成或保存新凭据。
+
+后续根据用户明确要求，将仓库改名为 FudanSVGEditor 并公开，使评阅者无需邀请即可访问。此次仅更新仓库名称、可见性及文档链接；已验收的代码和 final 标签保持原版本。
 
 ## 一致性自查
 

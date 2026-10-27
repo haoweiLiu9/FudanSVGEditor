@@ -1,4 +1,6 @@
-# SVG Editor CLI
+# FudanSVGEditor
+
+公开仓库：[haoweiLiu9/FudanSVGEditor](https://github.com/haoweiLiu9/FudanSVGEditor)。任何人均可访问和克隆，无需邀请。已验收的代码版本见 `final` 标签。
 
 高级软件开发 Lab1 Phase 1。TypeScript 面向对象实现，支持六种 SVG 图形、树形组合、Command 撤销重做与 SVG 文件读写。
 
