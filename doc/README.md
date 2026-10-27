@@ -1,0 +1,72 @@
+# Lab1 Phase 1 架构与过程记录
+
+## 架构方案
+
+### 模块划分
+
+| 模块 | 职责 |
+|---|---|
+| domain | 封装图形、几何、树结构与唯一 id 不变量 |
+| application | Command 执行、历史管理、文档会话、持久化接口 |
+| infrastructure | XML 与本地文件适配 |
+| cli | 命令行分词、命令分发、REPL、显示 |
+| bootstrap | 依赖组装与启动 |
+
+```plantuml
+@startuml
+package CLI
+package Application
+package Domain
+package Infrastructure
+package Bootstrap
+CLI --> Application
+CLI --> Domain : 只读显示
+Application --> Domain
+Infrastructure --> Application : 实现端口
+Infrastructure --> Domain
+Bootstrap --> CLI
+Bootstrap --> Application
+Bootstrap --> Infrastructure
+@enduml
+```
+
+### 设计模式
+
+必须采用 Command：每种编辑一个命令类，通过统一历史管理器执行和撤销。采用 Composite：Group 和叶子同属 Shape，多态操作几何。采用集中式 ShapeFactory：所有类型名称到构造器的分派只在此处；命令名称到处理器的分派只在 CommandDispatcher。
+
+两处名称分派均为后续待重构项：未来以插件注册机制替代内置清单。本阶段不实现 box 或完整插件系统。
+
+### 依赖方向规则
+
+Domain 不依赖其他层、Node IO 或 XML 库。Application 只依赖 Domain；持久化端口定义于 Application。Infrastructure 实现端口，可以依赖 Domain。CLI 依赖 Application，并允许只读访问 Domain 进行显示。Bootstrap 负责组装。测试可跨层验证。
+
+### 变化点假设
+
+1. 图形类型扩展：保留 Shape 多态和集中工厂；暂不实现动态插件加载。
+2. 交互通道扩展：Command 和领域行为不依赖 REPL，可用于未来 GUI/agent。
+3. 存储格式变化：通过 DocumentStore 端口隔离 XML 和磁盘。
+4. 大文档历史性能：本阶段采用封装快照保证结构撤销可靠；规模扩大时替换为增量备忘录。
+
+### 歧义决策
+
+- 跨父节点 group：最低公共祖先作为新组父节点，原文档先序遍历决定成员顺序，最早被选中分支决定插入位置。
+- 重复 id 拒绝导入；缺 id 先扫描显式 id，再分配不冲突编号。
+- 文档命令成功后清空历史并设置屏障；失败不改变历史。canvas 查询不设置屏障。
+- front 对应 SVG 后绘制（同级列表末尾），back 对应先绘制（开头）。
+- 暂不支持复杂 SVG 元素或 transform；涉及渲染语义的未支持内容明确报错，避免静默损失。
+
+## 过程记录
+
+### 方案核验与工程建立
+
+用户先要求方案，确认后指示开始实现。目标目录原为空，已初始化独立 Git 仓库。使用 AI 实现者和 AI 复核者两种视角；此处不将 AI 自查冒充人工校验，也不编造讨论。
+
+环境检查发现 Node 与 pnpm 可用，npm 不在 PATH，使用随附 pnpm 管理本项目依赖，不修改全局环境。
+
+## 一致性自查
+
+待最终代码完成后以实际目录、导入关系与检查结果填写。
+
+## 质量保证手段
+
+计划执行领域不变量、命令原子性、撤销历史、SVG 往返和作业会话集成测试；最终记录实际结果。
