@@ -46,6 +46,48 @@ export class SvgDocument {
     this.container(parentId).insert(shape);
   }
   delete(id: string): Shape { const shape = this.find(id); this.parent(shape).remove(shape); return shape; }
+  group(id: string, members: readonly string[]): Group {
+    if (this.all().some(node => node.id === id)) throw new Error(`id already exists: ${id}`);
+    if (!members.length) throw new Error('group requires at least one shape');
+    if (new Set(members).size !== members.length) throw new Error('duplicate group member');
+    const requested = members.map(member => this.find(member));
+    const selected = this.all().filter(node => requested.includes(node));
+    for (const node of selected) {
+      if (node instanceof Group && selected.some(other => other !== node && node.contains(other))) throw new Error(`cannot group a container into its own descendant: ${node.id}`);
+    }
+    let destination = this.parent(selected[0]!);
+    while (!selected.every(node => destination.contains(node))) destination = this.parent(destination);
+    const branches = selected.map(node => {
+      let branch = node;
+      while (this.parent(branch) !== destination) branch = this.parent(branch);
+      return destination.children.indexOf(branch);
+    });
+    const position = Math.min(...branches);
+    const originalParents = selected.map(node => this.parent(node));
+    const group = new Group(id);
+    selected.forEach((node, index) => { originalParents[index]!.remove(node); group.insert(node); });
+    destination.insert(group, position);
+    return group;
+  }
+  ungroup(id: string): number {
+    const group = this.find(id);
+    if (!(group instanceof Group)) throw new Error(`not a container: ${id}`);
+    const parent = this.parent(group);
+    if (parent === this.#root) throw new Error(`cannot ungroup top-level container: ${id}`);
+    const children = group.children;
+    const position = parent.remove(group);
+    children.forEach((child, index) => { group.remove(child); parent.insert(child, position + index); });
+    return children.length;
+  }
+  addTo(groupId: string, id: string): void {
+    const target = this.container(groupId); const shape = this.find(id);
+    if (shape === target || (shape instanceof Group && shape.contains(target))) throw new Error(`cannot group a container into its own descendant: ${id}`);
+    this.parent(shape).remove(shape); target.insert(shape);
+  }
+  reorder(id: string, toFront: boolean): void {
+    const shape = this.find(id); const parent = this.parent(shape);
+    parent.remove(shape); parent.insert(shape, toFront ? parent.children.length : 0);
+  }
   clone(): SvgDocument { const copy = new SvgDocument(this.width, this.height); copy.#root = this.#root.clone(); return copy; }
   restore(snapshot: SvgDocument): void { const copy = snapshot.clone(); this.#width = copy.width; this.#height = copy.height; this.#root = copy.#root; }
 }
