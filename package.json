@@ -11,12 +11,14 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "cli": "tsc -p tsconfig.json && node dist/src/bootstrap/Main.js",
-    "test": "tsc -p tsconfig.json && node --test dist/tests/*.test.js"
+    "test": "tsc -p tsconfig.json && node --test dist/tests/*.test.js",
+    "render:example": "tsc -p tsconfig.json && node dist/src/bootstrap/RenderExample.js"
   },
   "dependencies": {
     "@xmldom/xmldom": "^0.9.12"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "@types/node": "^26.6.5",
     "typescript": "^7.0.2"
   }
